@@ -27,7 +27,40 @@ _(空)_
 - [x] **T-063** ｜ CO2 游標漂移 Cursor drift — [2026-06-13 日誌](#2026-06-13--t-061-t-064-p6-視覺狀態層)
 - [x] **T-064** ｜ 設備狀態視覺指示器 ← **P6 達成 / M3 進行中** — [2026-06-13 日誌](#2026-06-13--t-061-t-064-p6-視覺狀態層)
 
-### P7–P10 — （P6 完成後可展開）
+### P7–P10 — （P6 完成後可展開；素材整合交組員）
+
+---
+
+### P-sim — 玩家模擬驗證工具（規格在 [`game/sim/`](../game/sim/README.md)）
+
+> 目的：自動、可重複、秒級跑完整局，驗「不會壞 + 平衡對」。完整哲學見 sim/README.md。
+> headless 不接真實時鐘 = 免費加速，整局 8 分鐘只跑幾毫秒。**先做 T-080 重構再往下。**
+
+- [x] **T-080** ｜ 抽輸入處理成純函式 `src/game/input.ts`，loop.ts 改用它 — [2026-06-13 日誌](#2026-06-13--t-080t-085-p-sim-玩家模擬驗證工具完成)
+- [x] **T-081** ｜ `sim/playerAgent.ts` 玩家策略型別合約 — [2026-06-13 日誌](#2026-06-13--t-080t-085-p-sim-玩家模擬驗證工具完成)
+- [x] **T-082** ｜ `sim/runner.ts` headless 引擎 + 時間軸 — [2026-06-13 日誌](#2026-06-13--t-080t-085-p-sim-玩家模擬驗證工具完成)
+- [x] **T-083** ｜ `sim/strategies.ts` 策略目錄（5 個）— [2026-06-13 日誌](#2026-06-13--t-080t-085-p-sim-玩家模擬驗證工具完成)
+- [x] **T-084** ｜ `sim/run.ts` CLI + 報表 — [2026-06-13 日誌](#2026-06-13--t-080t-085-p-sim-玩家模擬驗證工具完成)
+- [x] **T-085** ｜ `sim/sim.test.ts` 決定性斷言進 CI ← **P-sim 達成** — [2026-06-13 日誌](#2026-06-13--t-080t-085-p-sim-玩家模擬驗證工具完成)
+- [ ] **T-086**（選配）｜ `sim/browser-smoke.spec.ts` Playwright DOM 煙霧 ｜ 依賴: T-085, T-071 ｜ 規格: `sim/SPEC_browser-smoke.md`
+      驗收: 按鈕接線/toggle/長按/黑暈 overlay 4 條煙霧斷言；debug hook 僅 dev build 存在。
+
+---
+
+### P-i18n — 網頁中文化 + 友善化（規格在 [`I18N_PLAN.md`](./I18N_PLAN.md)）
+
+> 中英對照（D-011），集中字典 `ui/strings.ts`。**只動 `ui/` 與 index.html，不碰 `game/` 邏輯。**
+
+- [ ] **T-070** ｜ 建 `ui/strings.ts` 中英字典 + `bi()` helper ｜ 依賴: 無 ｜ 規格: `I18N_PLAN.md`
+      驗收: LABELS/BTN/STATUS/ENDING 字典齊全，`tsc` 綠。
+- [ ] **T-071** ｜ dashboard.ts / controls.ts 全部標籤改走字典 ｜ 依賴: T-070 ｜ 規格: `I18N_PLAN.md` 字串清單
+      驗收: 8 儀表 + 5 按鈕 + 狀態字全中英對照；`git diff game/src/game/` 為空。
+- [ ] **T-072** ｜ index.html title/lang + AMP/跳電警告中文化 ｜ 依賴: T-070 ｜ 規格: `I18N_PLAN.md`
+      驗收: title 為中文、`lang=zh-Hant`、超載/跳電警告中文。
+- [ ] **T-073** ｜ F1 結局畫面 overlay（勝/敗 + 中文死因 + 存活時長）｜ 依賴: T-071 ｜ 規格: `I18N_PLAN.md` §F1
+      驗收: lose/win 各有全屏 overlay，z-index > 102，純 ui/ 層；人肉眼確認觸發。
+- [ ] **T-074** ｜ F2 開場目標說明 + F3 控制圖例 ｜ 依賴: T-071 ｜ 規格: `I18N_PLAN.md` §F2/F3
+      驗收: 頂部目標說明 + 每按鈕一句功能說明。
 
 ---
 

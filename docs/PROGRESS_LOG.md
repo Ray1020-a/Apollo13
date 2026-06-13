@@ -14,6 +14,82 @@
 
 ---
 
+## 2026-06-13 — T-080~T-085 P-sim 玩家模擬驗證工具完成
+
+**做了什麼**：完成 P-sim 全部六個任務（T-080~T-085）。
+- T-080：`src/game/input.ts` 抽出三個純函式 handler，`loop.ts` 改成薄包裝。
+- T-081：`sim/playerAgent.ts` 型別合約（PlayerAgent / PlayerIntent / IDLE）。
+- T-082：`sim/runner.ts` headless 引擎，注入 mulberry32 決定性 RNG，跑完整局回傳 RunResult + timeline。
+- T-083：`sim/strategies.ts` 五個策略（doNothing / co2Only / panic / navOnly / rotate）。
+- T-084：`sim/run.ts` CLI，`npx tsx sim/run.ts` 印對齊摘要表，`--verbose` 印時間軸。
+- T-085：`sim/sim.test.ts` 決定性斷言進 CI，74/74 全綠（含原有 59 個）。
+- tsconfig 加入 `sim/` + 安裝 `@types/node`。
+
+**關鍵決定**：
+- `runner.ts` 意圖套用順序固定：`reset → toggles → o2Held`，保證可重現。
+- 每模擬秒 60 個 step，對齊 D-003（決策以模擬秒為單位）。
+- 不變量斷言（C 層）在 timeline 每幀驗數值範圍，抓深層越界 bug。
+
+**【平衡洞察】rotate 策略死於溫度，約 495~503s（設計師必看）**：
+- `navComp(4A) + co2Filter(5A) = 9A`，已達紅線 10A 的 90%，暖氣(3A)無法插入。
+- 在 CO2 危險期（> 7000 PPM）策略同時開 co2Filter + navComp，暖氣被鎖死。
+- 溫度持續自然下降 −0.035°C/s，約 500 秒觸及 0°C 死亡。
+- **根本矛盾**：同時要壓 CO2、推 ETA（導航）、顧溫度，三樣設備總安培 3+5+4=12A > 10A 紅線。
+  最佳可持續組合只能同時開其中兩個 → 必須輪轉，但 ETA 歸零需要導航開滿 480s，
+  導航不能頻繁關閉 → 贏的可達性存疑。
+- **建議**（供設計師決定）：
+  A. 降低任一設備的 AMP（例如 co2Filter 從 5A 降至 4A → 三個全開 10A 剛好貼線）。
+  B. 降低 ETA 所需壓縮導航時間（例如縮短一局到 400s，降低導航要求）。
+  C. 接受目前難度，讓 rotate 策略贏不了，設計師自行拿真人測試決定是否調。
+  → 此為設計決策，請回報設計師後再動 GDD 數值。
+
+**踩到的坑 / 注意**：
+- tsconfig 預設不含 `sim/`，加進 `include` 後才能 tsc 驗證。
+- `process` 需要 `@types/node`，不裝就 tsc 報錯。
+- vitest 預設掃整個 `game/` 目錄的 `*.test.ts`，`sim/sim.test.ts` 自動被掃到，不需改 vite.config。
+
+**下一輪該知道**：
+- P-sim 全部完成，可獨立往 **P-i18n** 線走（T-070 開始，無依賴）。
+- 平衡問題已回報在本日誌，設計師看完再決定要不要調 GDD 數值。
+- `npx tsx sim/run.ts --strategy rotate --verbose` 可印詳細時間軸輔助設計師判斷。
+
+---
+
+## 2026-06-13 — 規劃輪（Opus）：i18n + 玩家模擬驗證工具的架構文檔
+
+**做了什麼**：這一輪**不寫 code，只立架構**。產出兩條新工作線的完整規格，供下一個（便宜）模型照著實作：
+
+- **P-sim 玩家模擬驗證工具**：新目錄 `game/sim/`，含 7 份規格（README + 6 份 SPEC_*.md）。
+  把「模擬真人玩一局」做成 headless 純函式呼叫，不接 wall-clock → 整局 8 分鐘跑幾毫秒。
+  涵蓋：輸入重構（T-080）、玩家策略型別（T-081）、runner 引擎（T-082）、策略目錄（T-083）、
+  CLI 報表（T-084）、CI 斷言（T-085）、選配 Playwright 煙霧（T-086）。
+- **P-i18n 中文化 + 友善化**：規格 `docs/I18N_PLAN.md`。中英對照（D-011）、集中字典 `ui/strings.ts`、
+  另含三項友善化（結局畫面、開場目標、控制圖例）。任務 T-070~T-074。
+
+**關鍵決定**：
+- **「怕時間拖太久」是假問題**：系統是純函式 `step(state,dt)`，整局僅 480 模擬秒 = 28800 次 step。
+  在記憶體迴圈跑只要毫秒，根本不碰真實時鐘——「加速時間」是免費附贈，不需任何特殊機制。
+  瀏覽器（真實時鐘）只留一支薄煙霧測試，且用 dev-only debug hook 直接設值，不等模擬。
+- **驗證主力 headless、瀏覽器最薄**：邏輯數學歸 headless（決定性、秒級），DOM 接線歸 Playwright。
+  不在瀏覽器重測平衡（慢又脆）。
+- **前置重構 T-080**：輸入處理現在綁在 `loop.ts` 的 module state，runner 不能用。抽成純函式
+  `src/game/input.ts`，loop 與 runner 共用一份規則 → 單一真相，避免漂移。
+- **i18n 中英對照而非純中文**：保 GDD CRT 美學 + 不綁死素材組員。集中字典守解耦鐵律。標 🟡 待人拍板。
+- **發現缺口**：目前**沒有勝負結局畫面**，死了只印 `phase: lose / co2`。列為 i18n 最高價值友善化 F1。
+
+**踩到的坑 / 注意**：
+- runner 的隨機要注入 `mulberry32(seed)` 覆蓋 `initialState()` 的預設 `Math.random`，否則不可重現。
+- `rotate` 衝關策略的輸贏未知——這工具同時是**平衡探針**，回答「遊戲贏不贏得了」。若多 seed 都贏不了
+  且差很遠，可能是數值太硬（設計問題，要回報問人），別硬把斷言改綠。
+- i18n 任務做完前別寫 browser-smoke（T-086 依賴 T-071），否則斷英文字串之後得重改。
+
+**下一輪該知道**：
+- 兩條線都可獨立開工。建議先 **T-080**（解鎖整個 sim 線）或 **T-070**（解鎖整個 i18n 線）。
+- 撿任務照舊：`TASKS.md` 順序 = 優先級，P-sim 與 P-i18n 區各自由上而下。
+- 這輪純文檔，未動任何 `.ts`，`tsc`/`vitest` 狀態不變（仍 59/59 綠）。
+
+---
+
 ## 2026-06-13 — T-061~T-064 P6 視覺狀態層
 
 **做了什麼**：實作 GDD §7-C 全部七種視覺效果（分四個 commit）：

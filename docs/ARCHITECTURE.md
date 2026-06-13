@@ -7,9 +7,11 @@
 
 ## 現況
 
-- **Phase 0-2 完成**（T-001~T-025，2026-06-13）。
-- `npx tsc --noEmit` 綠、`npx vitest run` 39/39 綠。
-- 下一步：T-030 勝負判定，加 `checkWinLose()` 進 `step()`。
+- **M2 達成**（P0–P5：T-001~T-050）+ **P6 視覺狀態層完成**（T-061~T-064）+ **P-sim 完成**（T-080~T-085）。2026-06-13。
+- `npx tsc --noEmit` 綠、`npx vitest run` 74/74 綠。
+- **進行中**：**P-i18n** 中文化（T-070 開始）：規格在 [`I18N_PLAN.md`](./I18N_PLAN.md)。將新增 `src/ui/strings.ts` 中英字典 + 結局 overlay。只動 `ui/`。
+- 素材整合（P7）交組員，M2 後才碰。
+- **⚠ 平衡問題待設計師決策**：`rotate` 策略死於溫度約 500s；navComp(4A)+co2Filter(5A)=9A 時暖氣(3A)無法插入。詳見 PROGRESS_LOG 2026-06-13 條目。
 
 ---
 
@@ -18,15 +20,16 @@
 ```
 game/
 ├── index.html
-├── package.json          Vite + TS + Vitest
-├── tsconfig.json
+├── package.json          Vite + TS + Vitest + @types/node
+├── tsconfig.json         include: src / tests / sim
 ├── vite.config.ts
 ├── src/
 │   ├── main.ts           → import { startLoop } from './game/loop'; startLoop()
 │   ├── game/
 │   │   ├── constants.ts  所有 GDD 數值（具名常數）
 │   │   ├── state.ts      GameState 型別 + initialState() + computeAmp()
-│   │   ├── loop.ts       requestAnimationFrame 主迴圈（固定步長）
+│   │   ├── loop.ts       requestAnimationFrame 主迴圈（固定步長）；輸入改走 input.ts
+│   │   ├── input.ts      ★ 純函式輸入 handler（T-080）：applyToggleDevice / applySetO2Held / applyReset
 │   │   └── systems/
 │   │       ├── devices.ts  過熱/鎖定/跳電（GDD 6）
 │   │       ├── power.ts    電力消耗（GDD 5-B）
@@ -34,18 +37,27 @@ game/
 │   │       ├── temp.ts     溫度（GDD 5-E）
 │   │       ├── co2.ts      CO2 累積/過濾（GDD 5-D）
 │   │       ├── nav.ts      ETA + DEV（GDD 5-A, 5-F）
-│   │       └── index.ts    step() 組合所有系統
+│   │       └── index.ts    step() 組合所有系統 + checkWinLose
 │   └── ui/
-│       └── dashboard.ts  DOM 文字更新（每幀讀 state）
+│       ├── dashboard.ts  DOM 文字更新（每幀讀 state）
+│       └── effects.ts    視覺狀態層（黑暈 / 霜花 / 游標漂移）
+├── sim/                  ★ headless 模擬驗證工具（P-sim，T-080~T-085）
+│   ├── playerAgent.ts    PlayerAgent / PlayerIntent / IDLE 型別合約
+│   ├── runner.ts         runGame(agent, opts) → RunResult；決定性 RNG
+│   ├── strategies.ts     doNothing / co2Only / panic / navOnly / makeRotateAgent / STRATEGIES
+│   ├── run.ts            CLI 報表（npx tsx sim/run.ts [--seed N] [--strategy X] [--verbose]）
+│   └── sim.test.ts       決定性 + oracle + 不變量斷言（CI gate）
 └── tests/
-    ├── helpers.ts        mulberry32 seeded RNG
+    ├── helpers.ts        mulberry32 seeded RNG（sim/ 也 import 這裡）
+    ├── balance.test.ts   端到端整局平衡驗證
     └── systems/
         ├── power.test.ts
         ├── co2.test.ts
         ├── temp.test.ts
         ├── oxygen.test.ts
         ├── nav.test.ts
-        └── devices.test.ts
+        ├── devices.test.ts
+        └── checkWinLose.test.ts
 ```
 
 ---
@@ -86,7 +98,7 @@ function step(s: GameState, dt: number): GameState {
   s = temp(s, dt);      // 4. 溫度（讀 heater 與「實際釋放中」旗標）
   s = co2(s, dt);       // 5. CO2
   s = nav(s, dt);       // 6. ETA / DEV（漂移範圍依賴本幀 temp）
-  // checkWinLose 在 T-030（Phase 3）加入
+  s = checkWinLose(s);  // 7. 勝負判定（T-030）
   return s;
 }
 ```
@@ -147,11 +159,20 @@ type GameState = {
 ## 模組依賴方向
 
 ```
-ui/          ──讀──>  game/state（只讀，唯一碰 DOM）
-game/loop    ──呼叫──> game/systems/index（step）
-game/systems/* ──讀──> game/state（computeAmp 等 helpers）
-game/systems/* ──讀──> game/constants（GDD 數值）
-game/systems/* 彼此不互相 import（透過 state 溝通）
+ui/              ──讀──>  game/state（只讀，唯一碰 DOM）
+game/loop        ──呼叫──> game/systems/index（step）
+game/loop        ──呼叫──> game/input（applyToggleDevice / applySetO2Held / applyReset）
+game/systems/*   ──讀──>  game/state（computeAmp 等 helpers）
+game/systems/*   ──讀──>  game/constants（GDD 數值）
+game/systems/*   彼此不互相 import（透過 state 溝通）
+
+sim/runner       ──呼叫──> game/systems/index（step）
+sim/runner       ──呼叫──> game/input（與 loop 共用，單一真相）
+sim/runner       ──讀──>  game/state / game/constants
+sim/strategies   ──讀──>  game/state / game/constants（只讀儀表判斷決策）
+sim/run          ──呼叫──> sim/runner / sim/strategies
+sim/sim.test.ts  ──呼叫──> sim/runner / sim/strategies
+sim/*            ✗ 不得 import ui/（不碰 DOM）
 ```
 
 違反這個方向 = 架構錯了，回報到 PROGRESS_LOG。
@@ -175,7 +196,14 @@ game/systems/* 彼此不互相 import（透過 state 溝通）
 
 ## 測試策略
 
+**單元測試**（`tests/systems/*.test.ts`）：
 - 每個系統一個 `*.test.ts`，斷言 GDD 的關鍵時間點（清單見 DEVELOPMENT_PLAN §3）。
 - 系統是純函式，所以測試只要：給初始 state → 跑 N 次 dt → 斷言數值。
 - 隨機數走 `state.rng`（D-010），測試注入 `mulberry32` seed 或固定值（`() => 0` / `() => 1`）。
 - devices 測試中需手動 `s.elapsed += FIXED_DT`，模擬 `step()` 的 elapsed 增量行為。
+
+**模擬驗證**（`sim/sim.test.ts`）：
+- A 層：決定性斷言（每個策略 seed=7 跑兩次結果完全相等）。
+- B 層：oracle 策略預期結局（doNothing→deviation、panic→brownout、navOnly→co2...）。
+- C 層：數值不變量（timeline 每幀 o2/pwr/co2/dev 在合理範圍）。
+- `npx tsx sim/run.ts` 可互動查看平衡全貌；`--strategy rotate --verbose` 印詳細時間軸。
