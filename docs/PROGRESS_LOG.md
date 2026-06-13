@@ -14,6 +14,35 @@
 
 ---
 
+## 2026-06-13 — T-001~T-025 Phase 0-2 骨架 + 狀態 + 系統
+
+**做了什麼**：一輪完成 Phase 0（T-001/T-002）、Phase 1（T-010/T-011/T-012）、Phase 2（T-020~T-025）。
+建立 `game/` 下完整骨架：package.json + tsconfig + vite.config、GameState 型別、
+全部 GDD 具名常數、6 個純函式系統（devices/power/oxygen/temp/co2/nav）、
+固定步長迴圈、文字 dashboard，以及對照 GDD 數值的 39 個單元測試。
+`npx tsc --noEmit` 綠、`npx vitest run` 39/39 綠。
+
+**關鍵決定**：
+- `computeAmp()` 放在 `state.ts` 作為共用 helper，不放系統目錄，確保 systems 不互相 import。
+- 過熱不重置 heat（`d.heat = 0` 被拿掉），完全遵照 D-005 非對稱熱模型。
+- 系統執行順序嚴格照 D-007，`elapsed` 在 `step()` 入口先加，各系統不管。
+- `devDriftAcc = 1` 作為「nav 剛關閉、下一幀立即抽樣」的就緒旗標（D-003）。
+- dashboard 顯示 DEV 時，nav 關閉顯示 `ERR`（符合 GDD §7-A）。
+
+**踩到的坑 / 注意**：
+- 測試中需手動 `s.elapsed += FIXED_DT` 模擬 `step()` 的 elapsed 增量；
+  忘記這行會讓 lockUntil 邏輯永遠不觸發。
+- 設備過熱測試不能精確打 8.0s（浮點），統一用 8.1s/7.9s 夾出邊界。
+- nav 漂移測試需 `devDriftAcc = 1` 才能讓第一幀立即抽樣；
+  不設的話第一秒漂移量只有 1/60（最後一幀），測試結果與預期不符。
+
+**下一輪該知道**：
+- 下一個任務是 **T-030（勝負判定）**，照 SPEC_DECISIONS `checkWinLose` 公式直接加。
+- T-030 完成後再接 T-040（輸入控制）→ T-050（整局平衡）= **M2 檢查點**。
+- 視覺確認（瀏覽器開 `game/index.html` via Vite）需人做，不需 agent。
+
+---
+
 ## 2026-06-13 — 三項設計拍板 + 完整實作規格（SPEC_DECISIONS 定稿）
 
 **做了什麼**：設計者拍板三個 🟡 開放項，全部鎖定。並把 SPEC_DECISIONS 擴成完整實作聖經：
