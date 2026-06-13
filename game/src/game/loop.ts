@@ -3,7 +3,7 @@ import { initialState } from './state'
 import { FIXED_DT, MAX_FRAME } from './constants'
 import { step } from './systems/index'
 import { render } from '../ui/dashboard'
-import { updateVignette, updateFrost } from '../ui/effects'
+import { updateVignette, updateFrost, updateCursorDrift } from '../ui/effects'
 
 let state = initialState()
 let last = performance.now()
@@ -21,6 +21,7 @@ function frame(now: number): void {
   render(state, tick)
   updateVignette(state)
   updateFrost(state)
+  updateCursorDrift(state)
   requestAnimationFrame(frame)
 }
 

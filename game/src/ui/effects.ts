@@ -6,7 +6,7 @@
  * Called once per RAF frame from loop.ts after render().
  */
 import type { GameState } from '../game/state'
-import { CO2_VIGNETTE, CO2_LETHAL, TEMP_FROST, TEMP_FROST_HEAVY } from '../game/constants'
+import { CO2_VIGNETTE, CO2_LETHAL, CO2_CURSOR, TEMP_FROST, TEMP_FROST_HEAVY } from '../game/constants'
 
 let vignette: HTMLDivElement | null = null
 
@@ -89,6 +89,72 @@ export function updateFrost(s: GameState): void {
     light.style.opacity = '1'
     const t = Math.min(1, (TEMP_FROST_HEAVY - s.temp) / TEMP_FROST_HEAVY)
     heavy.style.opacity = t.toFixed(3)
+  }
+}
+
+// ── T-063: Cursor drift ──────────────────────────────────────────────────────
+
+let cursorDriftActive = false
+let driftInterval: ReturnType<typeof setInterval> | null = null
+let driftX = 0
+let driftY = 0
+
+function applyDrift(maxPx: number): void {
+  driftX = (Math.random() - 0.5) * 2 * maxPx
+  driftY = (Math.random() - 0.5) * 2 * maxPx
+}
+
+function startCursorDrift(maxPx: number): void {
+  if (driftInterval) clearInterval(driftInterval)
+  // Update drift target ~4× per second
+  driftInterval = setInterval(() => applyDrift(maxPx), 250)
+}
+
+function stopCursorDrift(): void {
+  if (driftInterval) { clearInterval(driftInterval); driftInterval = null }
+  driftX = 0; driftY = 0
+}
+
+// Intercept pointer events to shift the click target
+let driftHandler: ((e: PointerEvent) => void) | null = null
+
+function installDriftHandler(): void {
+  if (driftHandler) return
+  driftHandler = (e: PointerEvent) => {
+    if (driftX === 0 && driftY === 0) return
+    const el = document.elementFromPoint(e.clientX + driftX, e.clientY + driftY)
+    if (el && el !== e.target) {
+      // Re-dispatch to the drifted target so click lands in wrong place
+      el.dispatchEvent(new PointerEvent(e.type, { ...e, bubbles: true, cancelable: true }))
+      e.stopPropagation()
+    }
+  }
+  document.addEventListener('pointerdown', driftHandler, { capture: true })
+}
+
+function removeDriftHandler(): void {
+  if (!driftHandler) return
+  document.removeEventListener('pointerdown', driftHandler, { capture: true })
+  driftHandler = null
+}
+
+export function updateCursorDrift(s: GameState): void {
+  const shouldDrift = s.co2 > CO2_CURSOR
+
+  if (shouldDrift && !cursorDriftActive) {
+    cursorDriftActive = true
+    installDriftHandler()
+    // max drift 0→30px linear from CO2_CURSOR(8000) to CO2_LETHAL(10000)
+    const maxPx = Math.min(30, ((s.co2 - CO2_CURSOR) / (CO2_LETHAL - CO2_CURSOR)) * 30)
+    startCursorDrift(maxPx)
+  } else if (shouldDrift) {
+    // Update drift intensity as CO2 climbs
+    const maxPx = Math.min(30, ((s.co2 - CO2_CURSOR) / (CO2_LETHAL - CO2_CURSOR)) * 30)
+    startCursorDrift(maxPx)
+  } else if (!shouldDrift && cursorDriftActive) {
+    cursorDriftActive = false
+    stopCursorDrift()
+    removeDriftHandler()
   }
 }
 
