@@ -6,6 +6,14 @@
     <title>Apollo 13: Power Triage</title>
     <style>
       body { margin: 0; background: #000; color: #0f0; font-family: monospace; font-size: 14px; padding: 20px; line-height: 1.6; }
+      /* T-064: device state animations */
+      @keyframes flashRed    { 0%,100%{border-color:#0f0;color:#0f0} 50%{border-color:#f44;color:#f44} }
+      @keyframes flashYellow { 0%,100%{border-color:#0f0;color:#0f0} 50%{border-color:#fa0;color:#fa0} }
+      @keyframes flashAmp    { 0%,100%{color:#f44} 50%{color:#ff0} }
+      .btn-overheat { animation: flashRed    0.4s infinite }
+      .btn-degraded { animation: flashYellow 1.2s infinite }
+      #amp-warn { display:none; color:#f44; animation: flashAmp 0.3s infinite; font-weight:bold; margin-top:4px; }
+      #amp-warn.visible { display:block; }
     </style>
   </head>
   <body>

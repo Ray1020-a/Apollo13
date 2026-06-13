@@ -39,6 +39,21 @@ function setBtn(id: string, text: string, dim: boolean, color?: string): void {
   if (color) el.style.color = color
 }
 
+function setBtnClass(id: string, cls: string, on: boolean): void {
+  document.getElementById(id)?.classList.toggle(cls, on)
+}
+
+let ampWarnEl: HTMLDivElement | null = null
+function getAmpWarn(): HTMLDivElement {
+  if (!ampWarnEl) {
+    ampWarnEl = document.createElement('div')
+    ampWarnEl.id = 'amp-warn'
+    ampWarnEl.textContent = '!! AMP OVER REDLINE !!'
+    document.body.appendChild(ampWarnEl)
+  }
+  return ampWarnEl
+}
+
 export function render(s: GameState, tick: number): void {
   // ── 文字儀表板 ──────────────────────────────────────────────────────────
   const amp = (s.devices.heater.on ? 3 : 0) +
@@ -67,24 +82,30 @@ export function render(s: GameState, tick: number): void {
   const brownout = s.brownout
 
   const hd = s.devices.heater
-  setBtn(CTRL_ID.heater,
-    `[HEATER: ${deviceLabel(hd)}]`,
-    brownout || s.elapsed < hd.lockUntil)
+  const heaterLocked = s.elapsed < hd.lockUntil
+  setBtn(CTRL_ID.heater, `[HEATER: ${deviceLabel(hd)}]`, brownout || heaterLocked)
+  setBtnClass(CTRL_ID.heater, 'btn-overheat', !brownout && heaterLocked)
+  setBtnClass(CTRL_ID.heater, 'btn-degraded', !brownout && !heaterLocked && hd.degraded)
 
   const fd = s.devices.co2Filter
-  setBtn(CTRL_ID.co2Filter,
-    `[CO2 FILT: ${deviceLabel(fd)}]`,
-    brownout || s.elapsed < fd.lockUntil)
+  const filterLocked = s.elapsed < fd.lockUntil
+  setBtn(CTRL_ID.co2Filter, `[CO2 FILT: ${deviceLabel(fd)}]`, brownout || filterLocked)
+  setBtnClass(CTRL_ID.co2Filter, 'btn-overheat', !brownout && filterLocked)
+  setBtnClass(CTRL_ID.co2Filter, 'btn-degraded', !brownout && !filterLocked && fd.degraded)
 
   const nd = s.devices.navComp
-  setBtn(CTRL_ID.navComp,
-    `[NAV COMP: ${deviceLabel(nd)}]`,
-    brownout || s.elapsed < nd.lockUntil)
+  const navLocked = s.elapsed < nd.lockUntil
+  setBtn(CTRL_ID.navComp, `[NAV COMP: ${deviceLabel(nd)}]`, brownout || navLocked)
+  setBtnClass(CTRL_ID.navComp, 'btn-overheat', !brownout && navLocked)
+  setBtnClass(CTRL_ID.navComp, 'btn-degraded', !brownout && !navLocked && nd.degraded)
 
   const o2Empty = s.liqO2 <= 0
   setBtn(CTRL_ID.o2Release,
     o2Empty ? '[O2: EMPTY]' : `[O2 RELEASE${s.o2Releasing ? ' ▼' : '  '}]`,
     brownout || o2Empty)
+
+  // T-064: AMP 紅區閃爍警告
+  getAmpWarn().classList.toggle('visible', amp > 10)
 
   // RESET：跳電才顯示
   const resetEl = document.getElementById(CTRL_ID.reset) as HTMLButtonElement | null
