@@ -14,6 +14,27 @@
 
 ---
 
+## 2026-06-13 — T-030 勝負判定 + phase 轉換
+
+**做了什麼**：新增 `checkWinLose.ts`，接在 `step()` 末尾（D-007 最後一步）。
+五種死法（power/oxygen/co2/temp/deviation）+ 勝利全部實作；11 個測試涵蓋邊界（DEV=50不死、
+ETA≤0但電力歸零先判死、非 playing phase 不重複觸發、priority 順序）。
+50/50 全綠，tsc 綠。
+
+**關鍵決定**：
+- `checkWinLose` 獨立成 `systems/checkWinLose.ts`，簽章 `(s) => GameState`（無 dt，純判斷）。
+- DEV 的死亡條件是嚴格大於（`> 50`），50% 本身不算死，和 GDD §4 「超過 50%」一致。
+- 勝利檢查放在死亡之後：`if (r) → lose, else if eta≤0 → win`，確保電力剛好歸零那幀算死不算贏。
+
+**踩到的坑 / 注意**：無。SPEC_DECISIONS 公式直接照抄，無歧義。
+
+**下一輪該知道**：
+- 下一個任務是 **T-040（輸入控制）**：滑鼠操作改設備狀態、O2 長按、RESET。
+- T-040 需要碰 DOM（addEventListener），只能在 `ui/` 層，不進 `systems/`。
+- T-040 完成後直接接 T-050（整局平衡驗證）= **M2**。
+
+---
+
 ## 2026-06-13 — T-001~T-025 Phase 0-2 骨架 + 狀態 + 系統
 
 **做了什麼**：一輪完成 Phase 0（T-001/T-002）、Phase 1（T-010/T-011/T-012）、Phase 2（T-020~T-025）。

@@ -5,6 +5,7 @@ import { oxygen } from './oxygen'
 import { temp } from './temp'
 import { co2 } from './co2'
 import { nav } from './nav'
+import { checkWinLose } from './checkWinLose'
 
 // 執行順序鎖定：D-007
 // elapsed 先加，系統按序執行
@@ -16,6 +17,6 @@ export function step(s: GameState, dt: number): GameState {
   s = temp(s, dt)
   s = co2(s, dt)
   s = nav(s, dt)
-  // checkWinLose 在 T-030（Phase 3）加入
+  s = checkWinLose(s)
   return s
 }
