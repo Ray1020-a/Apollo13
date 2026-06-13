@@ -63,7 +63,8 @@ export function makeRotateAgent(): PlayerAgent {
       if (s.brownout) { reset = true; return { toggles, o2Held, reset } }
 
       // 主動散熱：接近過熱上限就關掉讓它冷，避免引擎強制鎖定
-      for (const id of ['heater', 'co2Filter', 'navComp'] as const) {
+      // 只看會過熱的設備（OVERHEAT_LIMIT 表）；navComp 不過熱，導航全程開
+      for (const id of Object.keys(OVERHEAT_LIMIT) as (keyof typeof OVERHEAT_LIMIT)[]) {
         const d = s.devices[id]
         if (d.on && d.heat >= OVERHEAT_LIMIT[id] * ROTATE_HEAT_RATIO) {
           toggles.push(id)

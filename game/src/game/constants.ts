@@ -55,6 +55,11 @@ export const DEV_DRIFT_MAX_COLD = 3     // temp<10 時 [0,3]
 export const DEV_LETHAL = 50            // %
 
 // ── 設備過熱 ── GDD §6-A，D-005
-export const OVERHEAT_LIMIT = { heater: 12, co2Filter: 8, navComp: 18 } as const
+// 設備共通本質是「耗電」(AMP)，不是「過熱」。過熱只是發熱設備的物理特性，
+// 所以這張表就是「誰會過熱」的唯一真相：不在表裡的設備（如導航電腦 navComp，
+// 固態低功耗）永遠不過熱，限制器只剩 AMP 紅線 + 漂移債。
+// （sim 實證：navComp 過熱會把導航工作週期壓到 ~57%，使勝利數學上不可達；移除後 rotate 全種子可贏。）
+export const OVERHEAT_LIMIT = { heater: 12, co2Filter: 8 } as const
+export type OverheatingId = keyof typeof OVERHEAT_LIMIT
 export const OVERHEAT_COOL_RATE = 1.5   // 散熱速率（P5 可調）
 export const LOCK_SECONDS = 5

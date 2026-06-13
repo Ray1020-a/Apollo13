@@ -36,11 +36,13 @@ describe('devices system — overheat', () => {
     expect(s.devices.heater.on).toBe(false)
   })
 
-  it('navComp overheats after 18 continuous seconds', () => {
+  it('navComp does NOT overheat — 固態低功耗，限制器只剩 AMP + 漂移債', () => {
     let s = initialState()
     s.devices.navComp.on = true
-    s = runDevices(s, 18.1)
-    expect(s.devices.navComp.on).toBe(false)
+    s = runDevices(s, 480)  // 撐完整局最低時長都不該過熱、不該鎖定
+    expect(s.devices.navComp.on).toBe(true)
+    expect(s.devices.navComp.heat).toBe(0)
+    expect(s.devices.navComp.lockUntil).toBe(0)
   })
 
   it('asymmetric cooling: heat at 4s off for 2s → heat ≈ 1 (D-005)', () => {

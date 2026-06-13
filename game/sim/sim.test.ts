@@ -5,10 +5,11 @@
  *  A. 引擎層（一定要過，過不了 = bug）：決定性、跳電、勝負正確。
  *  B. 平衡層（過不了 = 平衡跑掉，回報 PROGRESS_LOG，不要偷改斷言）。
  *
- * rotate 現況（run.ts 觀察 2026-06-13）：
- *   死於 temp 約 495~503s，navOnSeconds 約 293~299/480。
- *   navComp+co2Filter=9A 時暖氣無法插入（10A 紅線），導致溫度無法管理。
- *   → 數值平衡問題，回報設計師，暫不收緊「must win」斷言。
+ * rotate 現況（run.ts 觀察 2026-06-13，移除 navComp 過熱後）：
+ *   五個種子全 WIN，eta 歸零，收在 temp ≈ 3.2°C（新的命懸一線是溫度）。
+ *   病根：navComp 會過熱時導航工作週期被壓到 ~57%，勝利數學上不可達。
+ *   移除 navComp 過熱（OVERHEAT_LIMIT 不含 navComp）後「用心玩能贏」成立。
+ *   → B-2 已收緊為 must-win，防止未來改動又讓遊戲變不可贏。
  */
 import { describe, it, expect } from 'vitest'
 import { runGame } from './runner'
@@ -88,22 +89,21 @@ describe('B-1. navOnly：壓住 DEV，但 CO2 牆在約 480s 殺人', () => {
   })
 })
 
-// ── B-2. rotate 衝關探針（平衡層，寬鬆） ────────────────────────────────
+// ── B-2. rotate 衝關探針（平衡層：用心玩必須能贏） ──────────────────────
 
-describe('B-2. rotate：衝關探針（run.ts 觀測：死於 temp 約 495~503s）', () => {
-  // TODO：run.ts 觀察到 rotate 目前贏不了。
-  //       navComp(4A)+co2Filter(5A)=9A 時暖氣(3A)無法插入，溫度無法管理。
-  //       待設計師調整數值或策略啟發式後收緊此斷言為 outcome==='win'。
-  it('五個種子至少都能撐到 endSecond >= 300（基本生存能力）', () => {
+describe('B-2. rotate：衝關探針（移除 navComp 過熱後必須 WIN）', () => {
+  it('五個種子全部 WIN（用心玩能贏 = 平衡成立）', () => {
     for (const seed of [1, 2, 3, 7, 42]) {
       const r = runGame(makeRotateAgent(), { seed })
-      expect(r.endSecond).toBeGreaterThanOrEqual(300)
+      expect(r.outcome).toBe('win')
+      expect(r.final.eta).toBe(0)
     }
   })
 
-  it('seed=1 → 有開導航推 ETA（navOnSeconds > 0）', () => {
+  it('seed=1 → 導航撐滿整局推 ETA 歸零（navOnSeconds 接近 endSecond）', () => {
     const r = runGame(makeRotateAgent(), { seed: 1 })
     expect(r.stats.navOnSeconds).toBeGreaterThan(0)
+    expect(r.stats.navOnSeconds).toBeGreaterThanOrEqual(r.endSecond - 2)
   })
 })
 
