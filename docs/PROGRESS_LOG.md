@@ -14,6 +14,29 @@
 
 ---
 
+## 2026-06-13 — T-040 輸入控制
+
+**做了什麼**：`loop.ts` 加三個 input handlers（`toggleDevice`/`setO2Held`/`doReset`），
+新增 `ui/controls.ts`（建立 5 個按鈕 DOM 元素，dependency injection 接收 handlers），
+改寫 `ui/dashboard.ts`（用 `getElementById` 找按鈕，每幀更新文字與 opacity），
+更新 `main.ts` 組裝。
+
+**關鍵決定**：
+- `controls.ts` 不 import `loop.ts`（會造成 loop→dashboard→controls→loop 循環）；
+  改用 DI 讓 `main.ts` 傳入 handlers。`dashboard.ts` 用 DOM ID 找按鈕，不 import controls。
+- `CTRL_ID` 常數定義在 `controls.ts`，`dashboard.ts` import 它（這個方向無循環）。
+- O2 釋放用 `pointerdown`/`pointerup`/`pointerleave`/`pointercancel` 四事件，確保移走就放開。
+- 跳電時：所有開關 opacity 0.3（視覺提示），RESET 按鈕從 `display:none` 變 `inline-block`。
+
+**踩到的坑 / 注意**：無。
+
+**下一輪該知道**：
+- 下一個任務是 **T-050（整局平衡驗證）= M2 檢查點**。
+- T-050 是端到端測試，需要在瀏覽器玩過一局並確認 GDD §8 心流時間點（或寫 end-to-end 模擬測試）。
+- `vitest run` 目前全綠（50/50），T-050 可能需要增加長時間模擬測試。
+
+---
+
 ## 2026-06-13 — T-030 勝負判定 + phase 轉換
 
 **做了什麼**：新增 `checkWinLose.ts`，接在 `step()` 末尾（D-007 最後一步）。
