@@ -20,9 +20,21 @@ _(空)_
 
 ## BACKLOG
 
-### Phase 3+ — （M2 之後再展開，先別塞滿）
+### P6 — 視覺狀態層（GDD §7-C 七種效果）
 
-> P6–P10（視覺層、素材、音效、過場、打磨）的任務，等 M2 通過後，由當輪 agent 依 DEVELOPMENT_PLAN §3 展開加入此處。
+- [ ] **T-061** ｜ CO2 黑暈 Vignette overlay  ｜ 依賴: T-050  ｜ GDD: §7-C
+      驗收: CO2 > 5000 PPM 時畫面四周出現黑色放射漸層，CO2 = 10000 時 opacity 全開
+
+- [ ] **T-062** ｜ TEMP 霜花 Frost overlay  ｜ 依賴: T-050  ｜ GDD: §7-C
+      驗收: TEMP < 10°C 邊緣霜花出現；TEMP < 5°C 霜花擴散遮住 MAIN PWR / DEV 文字
+
+- [ ] **T-063** ｜ CO2 游標漂移 Cursor drift  ｜ 依賴: T-050  ｜ GDD: §7-C
+      驗收: CO2 > 8000 PPM 時 mousemove 事件中滑鼠位置偏移量隨 CO2 線性增大
+
+- [ ] **T-064** ｜ 設備狀態視覺指示器  ｜ 依賴: T-062  ｜ GDD: §7-C
+      驗收: AMP > 10A 時安培列 CSS 閃爍；設備過熱中按鈕閃紅；降效按鈕常駐黃色角標
+
+### P7–P10 — （P6 完成後再展開）
 
 ---
 

@@ -3,6 +3,7 @@ import { initialState } from './state'
 import { FIXED_DT, MAX_FRAME } from './constants'
 import { step } from './systems/index'
 import { render } from '../ui/dashboard'
+import { updateVignette } from '../ui/effects'
 
 let state = initialState()
 let last = performance.now()
@@ -18,6 +19,7 @@ function frame(now: number): void {
     acc -= FIXED_DT
   }
   render(state, tick)
+  updateVignette(state)
   requestAnimationFrame(frame)
 }
 
