@@ -14,6 +14,33 @@
 
 ---
 
+## 2026-06-13 — T-061~T-064 P6 視覺狀態層
+
+**做了什麼**：實作 GDD §7-C 全部七種視覺效果（分四個 commit）：
+- T-061：CO2 黑暈（CSS `radial-gradient` fixed div，5000→10000 PPM opacity 0→1）
+- T-062：TEMP 霜花（兩層：< 10°C 淺藍邊緣漸入；< 5°C 第二層 `backdropFilter blur` 遮字）
+- T-063：CO2 游標漂移（> 8000 PPM 安裝 capture-phase pointerdown 攔截，最大 30px 偏移，每 250ms 重抽）
+- T-064：設備視覺指示（lockUntil 期間 `btn-overheat` 閃紅 0.4s；degraded `btn-degraded` 閃黃 1.2s；AMP > 10A `#amp-warn` 閃爍）
+
+**P6 達成**。59/59 測試全綠，tsc 綠。
+
+**關鍵決定**：
+- 所有視覺效果純 CSS/DOM，完全在 `ui/` 層，零 game logic 改動。
+- `effects.ts` 採用懶建立模式（lazy element creation）：第一次呼叫才插入 DOM，之後只改 opacity/class。
+- 游標漂移不用 `mousemove` 修改事件座標（做不到），改用 capture-phase `pointerdown` 重新派送到偏移目標 — 點擊「打歪」而非游標偏移，符合「頭暈」語意。
+- `btn-overheat` 和 `btn-degraded` 不能同時 active（overheat 優先），確保動畫一次只跑一個。
+
+**踩到的坑 / 注意**：
+- CSS animation 會覆蓋 `style.color`。setBtn 在 `dim=false` 時不設 color，避免與 animation 衝突。若之後按鈕需要更精細的顏色控制，改成去掉 `animation` 用 JS 直接改 `style.color`。
+- `backdropFilter: 'blur(2px)'` 在 Chromium 需要硬體加速，某些 iframe 環境可能無效 — P7 換素材時評估是否改成 canvas 霜花。
+
+**下一輪該知道**：
+- P6 完成，下一步是 **P7（素材整合）**：換上 `../images/` 裡的儀表板圖、按鈕圖、像素字體。
+- P7 任務需先看 `../images/` 目錄結構，按 GDD §7-A 佈局對應。
+- 視覺效果 overlay（T-061~T-063）的 z-index 分配：vignette=100、frost_light=101、frost_heavy=102；P7 素材 z-index 應在 99 以下，overlay 才能蓋上去。
+
+---
+
 ## 2026-06-13 — T-050 M2 整局平衡驗證
 
 **做了什麼**：新增 `tests/balance.test.ts`，9 個端到端斷言涵蓋 GDD §8 主張。
