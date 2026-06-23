@@ -1,6 +1,21 @@
-import type { GameState, DeviceState } from '../game/state'
+import type { GameState, DeviceState, Phase, LoseReason } from '../game/state'
 import { LIQO2_PER_TANK } from '../game/constants'
 import { CTRL_ID } from './controls'
+
+const PHASE_TEXT: Record<Phase, string> = {
+  cutscene: '過場 CUTSCENE',
+  playing:  '進行中 PLAYING',
+  win:      '獲勝 WIN',
+  lose:     '失敗 LOSE',
+}
+
+const LOSE_TEXT: Record<LoseReason, string> = {
+  power:     '電力耗盡 POWER',
+  oxygen:    '氧氣耗盡 OXYGEN',
+  co2:       '二氧化碳中毒 CO2',
+  temp:      '艙溫過低 TEMP',
+  deviation: '航道偏離 DEVIATION',
+}
 
 let display: HTMLPreElement | null = null
 
@@ -48,7 +63,7 @@ function getAmpWarn(): HTMLDivElement {
   if (!ampWarnEl) {
     ampWarnEl = document.createElement('div')
     ampWarnEl.id = 'amp-warn'
-    ampWarnEl.textContent = '!! AMP OVER REDLINE !!'
+    ampWarnEl.textContent = '!! 電流超過紅線 AMP OVER REDLINE !!'
     document.body.appendChild(ampWarnEl)
   }
   return ampWarnEl
@@ -61,20 +76,21 @@ export function render(s: GameState, tick: number): void {
               (s.devices.navComp.on ? 4 : 0) +
               (s.o2Releasing ? 2 : 0)
 
+  // 每行開頭固定 2 個中文字，確保數值欄垂直對齊（CJK 偏移每行一致）
   const lines: string[] = [
-    `tick:     ${tick}`,
+    `計次 TICK:     ${tick}`,
     ``,
-    `ETA:      ${formatETA(s.eta)}`,
-    `MAIN PWR: ${s.mainPwr.toFixed(1)}%`,
-    `O2 TANK:  ${s.o2Tank.toFixed(1)}%`,
-    `LIQ O2:   ${formatLiqO2(s.liqO2)}`,
-    `CO2 LVL:  ${Math.round(s.co2)} PPM`,
-    `TEMP:     ${s.temp.toFixed(1)}°C`,
-    `DEV:      ${s.devices.navComp.on ? s.dev.toFixed(1) + '%' : 'ERR'}`,
+    `倒數 ETA:      ${formatETA(s.eta)}`,
+    `主電 PWR:      ${s.mainPwr.toFixed(1)}%`,
+    `氧槽 O2 TANK:  ${s.o2Tank.toFixed(1)}%`,
+    `液氧 LIQ O2:   ${formatLiqO2(s.liqO2)}`,
+    `二氧 CO2:      ${Math.round(s.co2)} PPM`,
+    `艙溫 TEMP:     ${s.temp.toFixed(1)}°C`,
+    `偏差 DEV:      ${s.devices.navComp.on ? s.dev.toFixed(1) + '%' : 'ERR 離線'}`,
     ``,
-    `AMP:      ${amp}A${amp > 10 ? ' ⚠ OVER REDLINE' : ''}`,
-    `phase:    ${s.phase}${s.loseReason ? ' / ' + s.loseReason : ''}`,
-    s.brownout ? `** BROWNOUT — CLICK RESET **` : '',
+    `電流 AMP:      ${amp}A${amp > 10 ? ' ⚠ 超過紅線 OVER REDLINE' : ''}`,
+    `階段 PHASE:    ${PHASE_TEXT[s.phase]}${s.loseReason ? ' / ' + LOSE_TEXT[s.loseReason] : ''}`,
+    s.brownout ? `** 跳電 BROWNOUT — 點 RESET 復電 **` : '',
   ]
   getDisplay().textContent = lines.join('\n')
 
@@ -83,25 +99,25 @@ export function render(s: GameState, tick: number): void {
 
   const hd = s.devices.heater
   const heaterLocked = s.elapsed < hd.lockUntil
-  setBtn(CTRL_ID.heater, `[HEATER: ${deviceLabel(hd)}]`, brownout || heaterLocked)
+  setBtn(CTRL_ID.heater, `[加熱器 HEATER: ${deviceLabel(hd)}]`, brownout || heaterLocked)
   setBtnClass(CTRL_ID.heater, 'btn-overheat', !brownout && heaterLocked)
   setBtnClass(CTRL_ID.heater, 'btn-degraded', !brownout && !heaterLocked && hd.degraded)
 
   const fd = s.devices.co2Filter
   const filterLocked = s.elapsed < fd.lockUntil
-  setBtn(CTRL_ID.co2Filter, `[CO2 FILT: ${deviceLabel(fd)}]`, brownout || filterLocked)
+  setBtn(CTRL_ID.co2Filter, `[濾罐 CO2 FILT: ${deviceLabel(fd)}]`, brownout || filterLocked)
   setBtnClass(CTRL_ID.co2Filter, 'btn-overheat', !brownout && filterLocked)
   setBtnClass(CTRL_ID.co2Filter, 'btn-degraded', !brownout && !filterLocked && fd.degraded)
 
   const nd = s.devices.navComp
   const navLocked = s.elapsed < nd.lockUntil
-  setBtn(CTRL_ID.navComp, `[NAV COMP: ${deviceLabel(nd)}]`, brownout || navLocked)
+  setBtn(CTRL_ID.navComp, `[導航 NAV COMP: ${deviceLabel(nd)}]`, brownout || navLocked)
   setBtnClass(CTRL_ID.navComp, 'btn-overheat', !brownout && navLocked)
   setBtnClass(CTRL_ID.navComp, 'btn-degraded', !brownout && !navLocked && nd.degraded)
 
   const o2Empty = s.liqO2 <= 0
   setBtn(CTRL_ID.o2Release,
-    o2Empty ? '[O2: EMPTY]' : `[O2 RELEASE${s.o2Releasing ? ' ▼' : '  '}]`,
+    o2Empty ? '[放氧 O2: EMPTY 耗盡]' : `[放氧 O2 RELEASE${s.o2Releasing ? ' ▼' : '  '}]`,
     brownout || o2Empty)
 
   // T-064: AMP 紅區閃爍警告

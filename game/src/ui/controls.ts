@@ -41,11 +41,11 @@ export function setupControls(h: InputHandlers): void {
   const row = document.createElement('div')
   row.style.cssText = 'margin-top:20px;padding-top:12px;border-top:1px solid #0f0'
 
-  const heaterBtn = makeBtn(CTRL_ID.heater, '[HEATER: off]')
-  const filterBtn = makeBtn(CTRL_ID.co2Filter, '[CO2 FILT: off]')
-  const navBtn    = makeBtn(CTRL_ID.navComp, '[NAV COMP: off]')
-  const o2Btn     = makeBtn(CTRL_ID.o2Release, '[O2 RELEASE]')
-  const resetBtn  = makeBtn(CTRL_ID.reset, '[!! RESET !!]')
+  const heaterBtn = makeBtn(CTRL_ID.heater, '[加熱器 HEATER: off]')
+  const filterBtn = makeBtn(CTRL_ID.co2Filter, '[濾罐 CO2 FILT: off]')
+  const navBtn    = makeBtn(CTRL_ID.navComp, '[導航 NAV COMP: off]')
+  const o2Btn     = makeBtn(CTRL_ID.o2Release, '[放氧 O2 RELEASE]')
+  const resetBtn  = makeBtn(CTRL_ID.reset, '[!! 重置 RESET !!]')
   resetBtn.style.color = '#f44'
   resetBtn.style.borderColor = '#f44'
   resetBtn.style.display = 'none'

@@ -47,6 +47,25 @@ _(空)_
 
 ---
 
+### P-burn — 導航改為間歇燃燒視窗（規格在 [`SPEC_BURN_WINDOW.md`](./SPEC_BURN_WINDOW.md)，決策 D-012）
+
+> 修掉「RNG 在高手線空轉」+ 貼合歷史 PC+2 手動點火。**先做 T-090 再往下；數值最後用 sim 鎖定。**
+> 鐵律：勝負押狀態邏輯（視窗+對準+按住），不押類比手眼，保住 sim 可測性。
+
+- [ ] **T-090** ｜ `constants.ts` 燃燒視窗常數 + `state.ts` 加 `burnInput` 欄位 ｜ 依賴: 無 ｜ 規格: `SPEC_BURN_WINDOW.md` §2,§3
+      驗收: 5 個常數 + `burnInput:0` 初始值，`tsc` 綠。
+- [ ] **T-091** ｜ `input.ts` 加 `applySetBurnInput`（鏡像 o2Held），`loop.ts` 綁長按點火鍵 ｜ 依賴: T-090 ｜ 規格: §4
+      驗收: 跳電中輸入歸 0、夾 [0,1]；UI 長按→quality 1、放開→0；視窗有畫面提示。
+- [ ] **T-092** ｜ `nav.ts` 改為間歇燃燒視窗（ETA 只在視窗內推進，視窗外漂移）｜ 依賴: T-090 ｜ 規格: §5
+      驗收: 照 §5 骨架；漂移債仍用舊 COMPRESSION；degraded 降效對準；D-007 順序不變。
+- [ ] **T-093** ｜ sim 接線：`PlayerIntent.burnInput` + runner 餵入 + 新 `burn` 策略 ｜ 依賴: T-092 ｜ 規格: §6
+      驗收: 意圖順序 reset→toggles→o2Held→burnInput；`burn` 策略會抓視窗點火。
+- [ ] **T-094** ｜ 平衡驗證 + 更新斷言（調 `COMPRESSION_BURN` 到可贏，鎖數值）｜ 依賴: T-093 ｜ 規格: §7
+      驗收: `burn` 五種子 WIN 且**結局不再全等（RNG 復活）**；rotate/nav-only 改 LOSE；
+      B-2 must-win 從 rotate 移到 burn；`nav.test.ts` 改視窗語意；最終數值寫進 PROGRESS_LOG。
+
+---
+
 ### P-i18n — 網頁中文化 + 友善化（規格在 [`I18N_PLAN.md`](./I18N_PLAN.md)）
 
 > 中英對照（D-011），集中字典 `ui/strings.ts`。**只動 `ui/` 與 index.html，不碰 `game/` 邏輯。**
