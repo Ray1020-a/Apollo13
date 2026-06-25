@@ -1,26 +1,32 @@
 /** 貼皮路徑與建議尺寸 — 對應 public/textures/README.md */
+const base = import.meta.env.BASE_URL
+
+function tex(subpath: string, w: number, h: number) {
+  return { path: `${base}${subpath}`, w, h }
+}
+
 export const TEXTURE_MANIFEST = {
   spacecraft: {
-    body:           { path: '/textures/spacecraft/body.png',           w: 1024, h: 2048 },
-    shield:         { path: '/textures/spacecraft/shield.png',         w: 512,  h: 512  },
-    tunnel:         { path: '/textures/spacecraft/tunnel.png',         w: 512,  h: 512  },
-    panel:          { path: '/textures/spacecraft/panel.png',          w: 1024, h: 512  },
-    window:         { path: '/textures/spacecraft/window.png',         w: 256,  h: 256  },
-    cabinInterior:  { path: '/textures/spacecraft/cabin-interior.png', w: 2048, h: 1024 },
+    body:          tex('textures/spacecraft/body.png',           1024, 2048),
+    shield:        tex('textures/spacecraft/shield.png',         512,  512),
+    tunnel:        tex('textures/spacecraft/tunnel.png',         512,  512),
+    panel:         tex('textures/spacecraft/panel.png',          1024, 512),
+    window:        tex('textures/spacecraft/window.png',         256,  256),
+    cabinInterior: tex('textures/spacecraft/cabin-interior.png', 2048, 1024),
   },
   cockpit: {
-    instrumentPanel: { path: '/textures/cockpit/instrument-panel.png', w: 2048, h: 1024 },
-    button:          { path: '/textures/cockpit/button.png',           w: 128,  h: 64   },
-    gaugeFace:       { path: '/textures/cockpit/gauge-face.png',       w: 256,  h: 256  },
-    frame:           { path: '/textures/cockpit/frame.png',            w: 512,  h: 1024 },
-    glass:           { path: '/textures/cockpit/glass.png',            w: 1024, h: 768  },
+    instrumentPanel: tex('textures/cockpit/instrument-panel.png', 2048, 1024),
+    button:          tex('textures/cockpit/button.png',           128,  64),
+    gaugeFace:       tex('textures/cockpit/gauge-face.png',       256,  256),
+    frame:           tex('textures/cockpit/frame.png',            512,  1024),
+    glass:           tex('textures/cockpit/glass.png',            1024, 768),
   },
   earth: {
-    diffuse:     { path: '/textures/earth/diffuse.png',     w: 2048, h: 1024 },
-    atmosphere:  { path: '/textures/earth/atmosphere.png',  w: 2048, h: 1024 },
+    diffuse:    tex('textures/earth/diffuse.png',    2048, 1024),
+    atmosphere: tex('textures/earth/atmosphere.png', 2048, 1024),
   },
   stars: {
-    skybox:    { path: '/textures/stars/skybox.png',    w: 4096, h: 2048 },
-    particle:  { path: '/textures/stars/particle.png',  w: 64,   h: 64   },
+    skybox:   tex('textures/stars/skybox.png',   4096, 2048),
+    particle: tex('textures/stars/particle.png', 64,   64),
   },
 } as const

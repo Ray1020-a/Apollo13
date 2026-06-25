@@ -3,7 +3,7 @@
  * 瀏覽器可能阻擋自動播放，會在首次點擊／按鍵後開始。
  */
 
-const BGM_PATH = '/audio/bgm.mp3'
+const BGM_PATH = `${import.meta.env.BASE_URL}audio/bgm.mp3`
 const BGM_VOLUME = 0.45
 
 let audio: HTMLAudioElement | null = null
